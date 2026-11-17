@@ -138,3 +138,8 @@ function stripFences(raw) {
 function formatJson(obj) {
   return JSON.stringify(obj, null, 2).replace(/\{\n\s+([^{}]*?)\n\s*\}/g, (m, inner) => '{ ' + inner.replace(/\n\s*/g, ' ') + ' }');
 }
+
+// Allows tests (Node) to import this file; ignored in the browser.
+if (typeof module !== 'undefined') {
+  module.exports = { CLUSTER_TYPES, INCIDENT_THRESHOLD, EXAMPLE, EXAMPLE_INCIDENT, validatePulse, derivePulse, stripFences, formatJson };
+}
