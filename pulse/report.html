@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test Suite Pulse Monitor</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="../assets/vendor/chart-4.4.1.umd.js"></script>
+<script src="../assets/vendor/html2canvas-1.4.1.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -333,7 +334,6 @@
     border-radius: 10px;
     font-size: 14px;
     font-weight: 500;
-    cursor: url('../assets/cursor.svg'), pointer;
     transition: background 0.15s;
   }
 
@@ -589,8 +589,7 @@ async function copyImage() {
   btn.textContent = 'Coming right up..';
   btn.disabled = true;
   try {
-    const h2c = await import('https://esm.sh/html2canvas@1.4.1');
-    const canvas = await h2c.default(document.getElementById('monitor'), { backgroundColor: '#000000', scale: 2, useCORS: true, logging: false });
+    const canvas = await html2canvas(document.getElementById('monitor'), { backgroundColor: '#000000', scale: 2, useCORS: true, logging: false });
     canvas.toBlob(async blob => {
       try {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);

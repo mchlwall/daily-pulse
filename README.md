@@ -57,6 +57,14 @@ Pasted JSON is validated (types, ranges, `http(s)` links) before rendering, and 
 
 ## Tech stack
 
-Static HTML + vanilla JS. No build step, no server. External deps loaded from CDN at runtime:
+Static HTML + vanilla JS. No build step, no server, no runtime CDN requests. Dependencies are vendored in `assets/vendor/` (see its README for versions, hashes and upgrade steps):
 - [Chart.js 4.4.1](https://www.chartjs.org/) - trend chart
 - [html2canvas 1.4.1](https://html2canvas.hertzen.com/) - screenshot-to-clipboard
+
+## Tests
+
+```sh
+node --test
+```
+
+Runs on every PR via GitHub Actions (`.github/workflows/ci.yml`). Requires Node 18+.
