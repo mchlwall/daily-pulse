@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Pulse</title>
+<style>
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background: #000;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  canvas {
+    display: block;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="ecg"></canvas>
+
+<script>
+  const canvas = document.getElementById('ecg');
+  const ctx = canvas.getContext('2d');
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const W = canvas.width;
+  const H = canvas.height;
+  const midY = H / 2;
+
+  const TOTAL_MS = 2200;
+  const BEEP_AT_MS = 900;
+
+  const ECG_POINTS = [
+    [0.00, 0],
+    [0.25, 0],
+    [0.30, -6],
+    [0.34, 6],
+    [0.37, 0],
+    [0.40, -80],
+    [0.44, 140],
+    [0.48, -30],
+    [0.52, 0],
+    [0.56, 20],
+    [0.60, 0],
+    [0.65, 0],
+    [1.00, 0],
+  ];
+
+  function getEcgY(progress) {
+    for (let i = 0; i < ECG_POINTS.length - 1; i++) {
+      const [x0, y0] = ECG_POINTS[i];
+      const [x1, y1] = ECG_POINTS[i + 1];
+      if (progress >= x0 && progress <= x1) {
+        const t = (progress - x0) / (x1 - x0);
+        return y0 + (y1 - y0) * t;
+      }
+    }
+    return 0;
+  }
+
+  function playBeep() {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(880, audioCtx.currentTime);
+
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.3, audioCtx.currentTime + 0.01);
+      gainNode.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.18);
+
+      oscillator.start(audioCtx.currentTime);
+      oscillator.stop(audioCtx.currentTime + 0.18);
+    } catch (e) {}
+  }
+
+  let beeped = false;
+  let startTime = null;
+  const lineWidth = W * 0.55;
+  const lineStartX = (W - lineWidth) / 2;
+
+  function draw(timestamp) {
+    if (!startTime) startTime = timestamp;
+    const elapsed = timestamp - startTime;
+    const progress = Math.min(elapsed / TOTAL_MS, 1);
+
+    ctx.clearRect(0, 0, W, H);
+
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    ctx.beginPath();
+    const steps = 300;
+    let started = false;
+
+    for (let i = 0; i <= steps; i++) {
+      const t = (i / steps) * progress;
+      const x = lineStartX + (t / 1) * lineWidth;
+      const ecgOffset = getEcgY(t);
+      const y = midY + ecgOffset;
+
+      if (!started) {
+        ctx.moveTo(x, y);
+        started = true;
+      } else {
+        ctx.lineTo(x, y);
+      }
+    }
+
+    ctx.stroke();
+
+    if (!beeped && elapsed >= BEEP_AT_MS) {
+      beeped = true;
+      playBeep();
+    }
+
+    if (progress < 1) {
+      requestAnimationFrame(draw);
+    } else {
+      setTimeout(forward, 300);
+    }
+  }
+
+  function forward() {
+    window.location.href = 'report.html';
+  }
+
+  requestAnimationFrame(draw);
+</script>
+</body>
+</html>

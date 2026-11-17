@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Pulse - Intake</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #fff;
+  }
+
+  .wrap {
+    width: 100%;
+    max-width: 560px;
+  }
+
+  .intake-logo {
+    font-size: 13px;
+    font-weight: 500;
+    color: #888;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 2rem;
+  }
+  .intake-logo span {
+    color: #639922;
+  }
+
+  .intake-heading {
+    font-size: 22px;
+    font-weight: 500;
+    color: #e0e0e0;
+    margin-bottom: 6px;
+  }
+
+  .intake-sub {
+    font-size: 14px;
+    color: #888;
+    margin-bottom: 1.75rem;
+    line-height: 1.5;
+  }
+
+  .intake-label {
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
+  }
+
+  #json-input {
+    width: 100%;
+    height: 220px;
+    background: #111;
+    border: 1px solid #222;
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 12px;
+    color: #ccc;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.15s;
+  }
+  #json-input:focus {
+    border-color: #888;
+  }
+
+  #json-input.has-error {
+    border-color: #A32D2D;
+  }
+
+  #json-input::placeholder {
+    color: #2a2a2a;
+  }
+
+  .error-msg {
+    font-size: 12px;
+    color: #E24B4A;
+    margin-top: 8px;
+    min-height: 18px;
+    display: none;
+  }
+
+  .error-msg.visible {
+    display: block;
+  }
+
+  .intake-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 1rem;
+    align-items: center;
+  }
+
+  .btn-primary {
+    padding: 10px 24px;
+    background: #639922;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover {
+    background: #4e7a1b;
+  }
+
+  .btn-primary:active {
+    background: #3B6D11;
+  }
+
+  .btn-ghost {
+    padding: 10px 16px;
+    background: transparent;
+    color: #888;
+    border: 1px solid #222;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-ghost:hover {
+    border-color: #888;
+    color: #aaa;
+  }
+
+  .hint {
+    font-size: 11px;
+    color: #666;
+    margin-top: 1.5rem;
+    line-height: 1.6;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 1.25rem;
+  }
+
+  .hint strong {
+    color: #777;
+    font-weight: 500;
+  }
+
+  .link {
+    font-size: 11px;
+    color: #666;
+    margin-top: 1.5rem;
+    line-height: 1.6;
+    border-top: 1px solid #1a1a1a;
+    padding-top: 1.25rem;
+  }
+
+  .link a {
+    color: #f08e9d;
+    text-decoration: none;
+  }
+
+  .link a:hover {
+    text-decoration: underline;
+  }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="intake-logo">Org <span> - </span> Daily Pulse 🫀📟</div>
+  <div class="intake-heading">Paste today's report</div>
+  <div class="intake-sub">Drop the JSON block from your automation output below > then hit Render</div>
+
+  <div class="intake-label">JSON output</div>
+  <textarea id="json-input" spellcheck="false" placeholder='{
+  "date": "Apr 17",
+  "suites": [ ... ],
+  "clusters": [ ... ],
+  "history": [ ... ]
+}'></textarea>
+  <div class="error-msg" id="error-msg"></div>
+
+  <div class="intake-actions">
+    <button class="btn-primary" onclick="handleRender()">Render pulse</button>
+    <button class="btn-ghost" onclick="loadExample(EXAMPLE)">Load example</button>
+    <button class="btn-ghost" onclick="loadExample(EXAMPLE_INCIDENT)">Load incident example</button>
+  </div>
+
+  <div class="hint">
+    <strong>Required:</strong> date · suites<br>
+    <strong>Optional:</strong> clusters · history (previous days only)<br>
+    Pass rate, failure counts and incident days are calculated for you.
+  </div>
+  <div class="link">
+    <a href="prompt.html">MCP Prompt Builder →</a>
+  </div>
+</div>
+
+<script src="schema.js"></script>
+<script>
+function loadExample(data) {
+  document.getElementById('json-input').value = formatJson(data);
+  clearError();
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-msg');
+  el.textContent = msg;
+  el.classList.add('visible');
+  document.getElementById('json-input').classList.add('has-error');
+}
+
+function clearError() {
+  document.getElementById('error-msg').classList.remove('visible');
+  document.getElementById('json-input').classList.remove('has-error');
+}
+
+function handleRender() {
+  clearError();
+  const raw = stripFences(document.getElementById('json-input').value);
+  if (!raw) { showError('Paste your JSON output first.'); return; }
+
+  let data;
+  try { data = JSON.parse(raw); }
+  catch (e) { showError('Invalid JSON - check for missing commas or brackets. ' + e.message); return; }
+
+  const errs = validatePulse(data);
+  if (errs.length) { showError(errs.slice(0, 3).join(' · ') + (errs.length > 3 ? ` (+${errs.length - 3} more)` : '')); return; }
+
+  sessionStorage.setItem('pulseData', JSON.stringify(data));
+  window.location.href = 'pulse/pulse.html';
+}
+
+document.getElementById('json-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleRender();
+});
+</script>
+</body>
+</html>

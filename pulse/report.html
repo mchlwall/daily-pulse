@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test Suite Pulse Monitor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0a0a0a;
+    padding: 2rem;
+    color: #1a1a1a;
+  }
+
+  #monitor {
+    background: #000000;
+    border-radius: 16px;
+    padding: 1.75rem;
+    max-width: 860px;
+    margin: 0 auto;
+  }
+
+  .header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 0.5px solid #333;
+  }
+
+  .patient-name {
+    font-size: 17px;
+    font-weight: 500;
+    color: #888;
+  }
+
+  .patient-sub {
+    font-size: 13px;
+    color: #888;
+    margin-top: 3px;
+  }
+
+  .status-badge {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 14px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .badge-stable { 
+    background: #EAF3DE;
+    color: #3B6D11;
+  }
+
+  .badge-warning { 
+    background: #FAEEDA;
+    color: #854F0B;
+  }
+
+  .badge-critical {
+    background: #FCEBEB;
+    color: #A32D2D;
+  }
+
+  .vitals {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+
+  .vital {
+    background: #111;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  .vital-label {
+    font-size: 11px;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+  }
+
+  .vital-value {
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  .vital-sub {
+    font-size: 11px;
+    color: #aaa;
+    margin-top: 2px;
+  }
+
+  .col-green {
+    color: #639922;
+  }
+
+  .col-amber {
+    color: #854F0B;
+  }
+
+  .col-red {
+    color: #A32D2D;
+  }
+
+  .col-default {
+    color: #757575;
+  }
+
+  .ecg-section {
+    background: #111;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .ecg-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+  }
+
+  .ecg-title {
+    font-size: 13px;
+    color: #888;
+  }
+
+  .ecg-legend {
+    display: flex;
+    gap: 14px;
+    font-size: 11px;
+    color: #aaa;
+    align-items: center;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    margin-right: 4px;
+    vertical-align: middle;
+  }
+
+  .suite-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 1.25rem;
+  }
+
+  .suite-card {
+    background: #111;
+    border-radius: 10px;
+    padding: 12px 14px;
+    border-left: 3px solid #639922;
+    border-top: none; border-right: none; border-bottom: none;
+  }
+
+  .suite-card.warn {
+    border-left-color:#BA7517;
+  }
+
+  .suite-card.crit {
+    border-left-color: #E24B4A;
+  }
+
+  .suite-name {
+    font-size: 12px;
+    font-weight: 500;
+    color: #aaa;
+    margin-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bar-wrap {
+    background: #333;
+    border-radius: 4px;
+    height: 6px;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 4px;
+  }
+
+  .suite-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #aaa;
+  }
+
+  .clusters-section {
+    margin-bottom: 1.25rem;
+  }
+
+  .clusters-title {
+    font-size: 11px;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .cluster-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .cluster-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #111;
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+
+  .cluster-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 1px;
+    letter-spacing: 0.04em;
+  }
+
+  .badge-new {
+    background: #FCEBEB;
+    color: #A32D2D;
+  }
+
+  .badge-regression {
+    background: #FAEEDA;
+    color: #854F0B;
+  }
+
+  .badge-flake {
+    background: #1a1a2e;
+    color: #8888cc;
+    border: 1px solid #444;
+  }
+
+  .badge-env {
+    background: #1a2a1a;
+    color: #6aaa6a;
+    border: 1px solid #444;
+  }
+
+  .cluster-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cluster-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: #ccc;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cluster-error {
+    font-size: 11px;
+    color: #555;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    margin-top: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cluster-link {
+    font-size: 11px;
+    color: #639922;
+    text-decoration: none;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .cluster-link:hover {
+    text-decoration: underline;
+  }
+
+  .copy-btn {
+    display: block;
+    width: 100%;
+    padding: 9px;
+    background: #1a1a1a;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: url('../assets/cursor.svg'), pointer;
+    transition: background 0.15s;
+  }
+
+  .copy-btn:hover {
+    background: #333;
+  }
+
+  .copy-btn:active {
+    background: #000;
+  }
+
+  .copy-btn.copied {
+    background: #3B6D11;
+  }
+
+  .error-screen {
+    max-width: 860px;
+    margin: 4rem auto;
+    text-align: center;
+    color: #555;
+  }
+  .error-screen h2 {
+    font-size: 18px;
+    font-weight: 500;
+    color: #aaa;
+    margin-bottom: 8px;
+  }
+
+  .error-screen p {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .error-screen a {
+    color: #639922;
+    text-decoration: none;
+  }
+
+  .error-screen a:hover {
+    text-decoration: underline;
+  }
+
+</style>
+</head>
+<body>
+
+  <div id="monitor">
+  <div class="header">
+    <div>
+      <div class="patient-name">Org - Test Suites</div>
+      <div class="patient-sub" id="hdr-sub">-</div>
+    </div>
+    <span class="status-badge" id="status-badge">-</span>
+  </div>
+
+  <div class="vitals">
+    <div class="vital">
+      <div class="vital-label">Pass rate</div>
+      <div class="vital-value" id="v-pass">-</div>
+      <div class="vital-sub">🩶 Heart rate</div>
+    </div>
+    <div class="vital">
+      <div class="vital-label">Unique failures</div>
+      <div class="vital-value" id="v-fails">-</div>
+      <div class="vital-sub" id="v-fails-sub">-</div>
+    </div>
+    <div class="vital">
+      <div class="vital-label">New failures</div>
+      <div class="vital-value" id="v-new">-</div>
+      <div class="vital-sub">unseen before today</div>
+    </div>
+    <div class="vital">
+      <div class="vital-label">Flakes</div>
+      <div class="vital-value col-default" id="v-flakes">-</div>
+      <div class="vital-sub">known intermittent</div>
+    </div>
+  </div>
+
+  <div class="ecg-section">
+    <div class="ecg-header">
+      <span class="ecg-title" id="ecg-title">Pass rate</span>
+      <div class="ecg-legend">
+        <span><span class="legend-dot" style="background:#639922;"></span>pass rate</span>
+        <span class="incident-legend" style="display:none;"><span class="legend-dot" style="background:#E24B4A;"></span>incident</span>
+      </div>
+    </div>
+    <div style="position:relative;width:100%;height:160px;">
+      <canvas id="ecgChart"></canvas>
+    </div>
+  </div>
+
+  <div class="suite-grid" id="suite-grid"></div>
+
+  <div class="clusters-section" id="clusters-section" style="display:none;">
+    <div class="clusters-title">Failure clusters</div>
+    <div class="cluster-list" id="cluster-list"></div>
+  </div>
+
+  <button class="copy-btn" id="copy-btn" onclick="copyImage()">Copy for Slack</button>
+</div>
+
+<div id="error-screen" class="error-screen" style="display:none;">
+  <h2>No data found</h2>
+  <p>Open <a href="../index.html">index.html</a> and paste your JSON there to render the pulse.</p>
+</div>
+
+<script src="../schema.js"></script>
+<script>
+const CLUSTER_META = {
+  NEW:        { label: 'NEW',        cls: 'badge-new' },
+  REGRESSION: { label: 'REGRESSION', cls: 'badge-regression' },
+  FLAKE:      { label: 'FLAKE',      cls: 'badge-flake' },
+  ENV:        { label: 'ENV',        cls: 'badge-env' }
+};
+
+function getStatus(p, n) {
+  if (p >= 90 && n <= 1) return { label: 'Stable',   cls: 'badge-stable' };
+  if (p >= 80 || n <= 3) return { label: 'Degraded', cls: 'badge-warning' };
+  return { label: 'Critical', cls: 'badge-critical' };
+}
+
+function passColor(p) {
+  return p >= 90 ? '#639922' : p >= 80 ? '#BA7517' : '#E24B4A';
+}
+
+function suiteClass(p) {
+  return p >= 90 ? '' : p >= 80 ? 'warn' : 'crit';
+}
+
+function esc(s) {
+  const el = document.createElement('span');
+  el.textContent = s;
+  return el.innerHTML;
+}
+
+function render(input) {
+  const d = { ...input, ...derivePulse(input) };
+  document.getElementById('monitor').style.display = 'block';
+
+  document.getElementById('hdr-sub').textContent = `Last run: ${d.date}  ·  ${d.suites.length} suites active`;
+
+  const status = getStatus(d.passRate, d.newFailures);
+  const badge = document.getElementById('status-badge');
+  badge.textContent = status.label;
+  badge.className = 'status-badge ' + status.cls;
+
+  const vPass = document.getElementById('v-pass');
+  vPass.textContent = d.passRate.toFixed(1) + '%';
+  vPass.className = 'vital-value ' + (d.passRate >= 90 ? 'col-green' : d.passRate >= 80 ? 'col-amber' : 'col-red');
+
+  const vFails = document.getElementById('v-fails');
+  vFails.textContent = d.uniqueFailures;
+  vFails.className = 'vital-value ' + (d.uniqueFailures === 0 ? 'col-green' : d.uniqueFailures < 10 ? 'col-amber' : 'col-red');
+  document.getElementById('v-fails-sub').textContent = `across ${d.clusterCount} cluster${d.clusterCount === 1 ? '' : 's'}`;
+
+  const vNew = document.getElementById('v-new');
+  vNew.textContent = d.newFailures;
+  vNew.className = 'vital-value ' + (d.newFailures === 0 ? 'col-green' : d.newFailures <= 2 ? 'col-amber' : 'col-red');
+
+  document.getElementById('v-flakes').textContent = d.flakes;
+
+  const grid = document.getElementById('suite-grid');
+  grid.innerHTML = '';
+  d.suites.forEach(s => {
+    const pct = Math.round((s.passed / s.total) * 1000) / 10;
+    const card = document.createElement('div');
+    card.className = 'suite-card ' + suiteClass(pct);
+    card.innerHTML = `
+      <div class="suite-name" title="${esc(s.name)}">${esc(s.name)}</div>
+      <div class="bar-wrap"><div class="bar-fill" style="width:${pct}%;background:${passColor(pct)};"></div></div>
+      <div class="suite-stats"><span>${esc(String(s.passed))} / ${esc(String(s.total))}</span><span style="color:${passColor(pct)};font-weight:500;">${pct.toFixed(1)}%</span></div>
+    `;
+    grid.appendChild(card);
+  });
+
+  const clusterSection = document.getElementById('clusters-section');
+  const clusterList = document.getElementById('cluster-list');
+  if (d.clusters && d.clusters.length > 0) {
+    clusterSection.style.display = 'block';
+    clusterList.innerHTML = '';
+    const order = ['NEW','REGRESSION','FLAKE','ENV'];
+    [...d.clusters].sort((a,b) => order.indexOf(a.type) - order.indexOf(b.type)).forEach(c => {
+      const meta = CLUSTER_META[c.type] || { label: c.type, cls: 'badge-flake' };
+      const row = document.createElement('div');
+      row.className = 'cluster-row';
+      row.innerHTML = `
+        <span class="cluster-badge ${meta.cls}">${esc(meta.label)}</span>
+        <div class="cluster-body">
+          <div class="cluster-name">${esc(c.name)}${c.count > 1 ? ` <span style="color:#888;font-weight:400;">×${c.count}</span>` : ''}</div>
+          <div class="cluster-error">${esc(c.error || '')}</div>
+        </div>
+        ${c.actLink ? `<a class="cluster-link" href="${esc(c.actLink)}" target="_blank">↗ build</a>` : ''}
+      `;
+      clusterList.appendChild(row);
+    });
+  } else {
+    clusterSection.style.display = 'none';
+  }
+
+  const isIncident = i => d.incidentDays.includes(i);
+  if (d.incidentDays.length > 0) document.querySelector('.incident-legend').style.display = 'inline-flex';
+  document.getElementById('ecg-title').textContent = `Pass rate - last ${d.history.length} working days`;
+
+  new Chart(document.getElementById('ecgChart'), {
+    type: 'line',
+    data: {
+      labels: d.history.map(h => h.label),
+      datasets: [{
+        data: d.history.map(h => h.passRate),
+        borderColor: '#639922',
+        backgroundColor: 'transparent',
+        pointBackgroundColor: d.history.map((h,i) => isIncident(i) ? '#E24B4A' : '#639922'),
+        pointBorderColor:     d.history.map((h,i) => isIncident(i) ? '#E24B4A' : '#639922'),
+        pointRadius:          d.history.map((h,i) => isIncident(i) ? 6 : 4),
+        pointHoverRadius: 7,
+        borderWidth: 2.5,
+        tension: 0.35,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.y.toFixed(1)}%${isIncident(ctx.dataIndex) ? '  incident' : ''}` } }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { size: 11 }, autoSkip: false } },
+        y: { min: 50, max: 100, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#888', font: { size: 11 }, callback: v => v + '%' } }
+      }
+    }
+  });
+}
+
+const raw = sessionStorage.getItem('pulseData');
+if (raw) {
+  try {
+    const data = JSON.parse(raw);
+    if (validatePulse(data).length) throw new Error('invalid');
+    render(data);
+  } catch {
+    document.getElementById('error-screen').style.display = 'block';
+  }
+} else {
+  document.getElementById('error-screen').style.display = 'block';
+}
+
+async function copyImage() {
+  const btn = document.getElementById('copy-btn');
+  btn.textContent = 'Coming right up..';
+  btn.disabled = true;
+  try {
+    const h2c = await import('https://esm.sh/html2canvas@1.4.1');
+    const canvas = await h2c.default(document.getElementById('monitor'), { backgroundColor: '#000000', scale: 2, useCORS: true, logging: false });
+    canvas.toBlob(async blob => {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
+        btn.textContent = 'Copied to clipboard';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Copy for Slack'; btn.classList.remove('copied'); btn.disabled = false; }, 2500);
+      } catch {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'pulse.png';
+        a.click();
+        btn.textContent = 'Copy for Slack';
+        btn.disabled = false;
+      }
+    }, 'image/png');
+  } catch {
+    btn.textContent = 'Copy for Slack';
+    btn.disabled = false;
+    alert('Could not capture. Try Chrome.');
+  }
+}
+</script>
+</body>
+</html>
