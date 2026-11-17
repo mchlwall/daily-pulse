@@ -409,7 +409,7 @@
     <div class="cluster-list" id="cluster-list"></div>
   </div>
 
-  <button class="copy-btn" id="copy-btn" onclick="copyImage()">Copy for Slack</button>
+  <button class="copy-btn" id="copy-btn" onclick="copyImage()">Copy</button>
 </div>
 
 <div id="error-screen" class="error-screen" style="display:none;">
@@ -571,18 +571,18 @@ async function copyImage() {
         await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
         btn.textContent = 'Copied to clipboard';
         btn.classList.add('copied');
-        setTimeout(() => { btn.textContent = 'Copy for Slack'; btn.classList.remove('copied'); btn.disabled = false; }, 2500);
+        setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); btn.disabled = false; }, 2500);
       } catch {
         const a = document.createElement('a');
         a.href = URL.createObjectURL(blob);
         a.download = 'pulse.png';
         a.click();
-        btn.textContent = 'Copy for Slack';
+        btn.textContent = 'Copy';
         btn.disabled = false;
       }
     }, 'image/png');
   } catch {
-    btn.textContent = 'Copy for Slack';
+    btn.textContent = 'Copy';
     btn.disabled = false;
     alert('Could not capture. Try Chrome.');
   }
